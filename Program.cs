@@ -1,6 +1,4 @@
 ﻿
-using System.Numerics.Tensors;
-
 namespace blazingzephyr.itmo.tensors;
 
 internal class Program
@@ -67,13 +65,13 @@ internal class Program
     static void OuterProduct1()
     {
         Span<double> a = [1, 0, 0, 1];
-        Tensor<double> A = new Tensor<double>(a, 2, 2);
+        impl1.Tensor<double> A = new impl1.Tensor<double>(a, 2, 2);
 
         Span<double> b = [1, 1, 1, -1];
-        Tensor<double> B = new Tensor<double>(b, 2, 2);
+        impl1.Tensor<double> B = new impl1.Tensor<double>(b, 2, 2);
 
         Span<double> c = stackalloc double[2 * 2 * 2 * 2];
-        Tensor<double> C = Tensor<double>.OuterProduct(A, B, c);
+        impl1.Tensor<double> C = impl1.Tensor<double>.OuterProduct(A, B, c);
 
         Console.WriteLine(C[0, 0, 1, 1]);
     }
@@ -81,16 +79,63 @@ internal class Program
     static void OuterProduct2()
     {
         Span<double> a = [1, 2, 3, 4];
-        Tensor<double> A = new Tensor<double>(a, 4, 1);
+        impl1.Tensor<double> A = new impl1.Tensor<double>(a, 4, 1);
 
         Span<double> b = [5, 6, 7, 8];
-        Tensor<double> B = new Tensor<double>(b, 1, 4);
+        impl1.Tensor<double> B = new impl1.Tensor<double>(b, 1, 4);
 
         Span<double> c = stackalloc double[2 * 2 * 2 * 2];
-        Tensor<double> C = Tensor<double>.OuterProduct(A, B, c);
+        impl1.Tensor<double> C = impl1.Tensor<double>.OuterProduct(A, B, c);
 
         Console.WriteLine(A[2, 0]);
         Console.WriteLine(B[0, 3]);
         Console.WriteLine(C[2, 0, 0, 2]);
+    }
+
+    static void AlternateImplementation()
+    {
+        Span<double> a = [1, 2, 3, 4];
+        impl2.Tensor<double> A = new impl2.Tensor<double>(a, ['i'], [], [4]);
+
+        Span<double> b = [5, 6, 7, 8];
+        impl2.Tensor<double> B = new impl2.Tensor<double>(b, [], ['j'], [4]);
+
+        Span<double> c = stackalloc double[2 * 2 * 2 * 2];
+        impl2.Tensor<double> C = impl2.Tensor<double>.OuterProduct(A, B, c);
+
+        Console.WriteLine(A[('i', 2)]);
+        Console.WriteLine(B[('j', 3)]);
+        Console.WriteLine(C[('i', 2), ('j', 2)]);
+    }
+
+    static void KroneckerProduct()
+    {
+        Span<double> a = [1, -4, 7, -2, 3, 3];
+        impl1.Tensor<double> A = new impl1.Tensor<double>(a, 2, 3);
+
+        Span<double> b = [8, -9, -6, 5, 1, -3, -4, 7, 2, 8, -8, -3, 1, 2, -5, -1];
+        impl1.Tensor<double> B = new impl1.Tensor<double>(b, 4, 4);
+
+        Span<double> c = stackalloc double[2 * 3 * 4 * 4];
+        impl1.Tensor<double> C = impl1.Tensor<double>.KroneckerProduct(A, B, c);
+
+        Console.WriteLine(A[1, 0]);
+        Console.WriteLine(B[0, 3]);
+        Console.WriteLine(C[4, 5]);
+        Console.WriteLine(String.Join(", ", c.ToArray()));
+    }
+
+    static void Add()
+    {
+        Span<double> a = [1, 2, 3, 4];
+        impl1.Tensor<double> A = new impl1.Tensor<double>(a, 1, 4);
+
+        Span<double> b = [5, 6, 7, 8];
+        impl1.Tensor<double> B = new impl1.Tensor<double>(b, 1, 4);
+
+        Span<double> dest = stackalloc double[2 * 2];
+        impl1.Tensor<double> C = impl1.Tensor<double>.Add(A, 1.0, B, 1.5, dest);
+
+        Console.WriteLine(String.Join(", ", dest.ToArray()));
     }
 }
