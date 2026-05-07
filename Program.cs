@@ -5,23 +5,41 @@ internal class Program
 {
     static void Main()
     {
-        Console.WriteLine("Примитивные тензорные / SIMD операции из .NET8:");
-        Console.ReadKey();
-        Example1();
+        Action[] actions = [
+            Example1,
+            Example2,
+            OuterProduct1,
+            OuterProduct2,
+            KroneckerProduct,
+            Add,
+            Symmetrize,
+            Transpositions,
+            Contract,
+            Contract2,
+            Contract3
+        ];
 
-        Console.WriteLine("----------");
-        Console.ReadKey();
-        Example2();
+        string[] lines = [
+            "Примитивные тензорные / SIMD операции из .NET8",
+            "Примитивные тензорные / SIMD операции из .NET8",
+            "Внешнее (тензорное) произведение",
+            "Внешнее (тензорное) произведение",
+            "Произведение Кронекера",
+            "Сложение (с коэффициентом, A + 1.5 * B)",
+            "Симметрирование / Альтернирование",
+            "Транспонирование",
+            "Свёртка тензора (след матрицы)",
+            "Свёртка тензора",
+            "Свёртка тензоров (умножение матриц)"
+        ];
 
-        Console.WriteLine();
-        Console.WriteLine("Собственная имплементация тензоров:");
-        Console.ReadKey();
-        OuterProduct1();
-
-        Console.WriteLine();
-        Console.WriteLine("Собственная имплементация тензоров:");
-        Console.ReadKey();
-        OuterProduct2();
+        for (int i = 0; i < lines.Length; i++)
+        {
+            if (i > 0) Console.WriteLine("----------");
+            Console.WriteLine($"{lines[i]}:");
+            Console.ReadKey();
+            actions[i]();
+        }
     }
 
     static void Example1()
@@ -73,7 +91,9 @@ internal class Program
         Span<double> c = stackalloc double[2 * 2 * 2 * 2];
         impl1.Tensor<double> C = impl1.Tensor<double>.OuterProduct(A, B, c);
 
-        Console.WriteLine(C[0, 0, 1, 1]);
+        PrintTensors(A, B, C);
+        Console.WriteLine();
+        Console.WriteLine($"C[0, 1, 2, 1] = {C[0, 1, 2, 1]}");
     }
 
     static void OuterProduct2()
@@ -87,9 +107,11 @@ internal class Program
         Span<double> c = stackalloc double[2 * 2 * 2 * 2];
         impl1.Tensor<double> C = impl1.Tensor<double>.OuterProduct(A, B, c);
 
-        Console.WriteLine(A[2, 0]);
-        Console.WriteLine(B[0, 3]);
-        Console.WriteLine(C[2, 0, 0, 2]);
+        PrintTensors(A, B, C);
+        Console.WriteLine();
+        Console.WriteLine($"A[2, 0] = {A[2, 0]}");
+        Console.WriteLine($"B[0, 3] = {B[0, 3]}");
+        Console.WriteLine($"C[2, 0, 0, 2] = {C[2, 0, 0, 2]}");
     }
 
     static void AlternateImplementation()
@@ -119,10 +141,11 @@ internal class Program
         Span<double> c = stackalloc double[2 * 3 * 4 * 4];
         impl1.Tensor<double> C = impl1.Tensor<double>.KroneckerProduct(A, B, c);
 
-        Console.WriteLine(A[1, 0]);
-        Console.WriteLine(B[0, 3]);
-        Console.WriteLine(C[4, 5]);
-        Console.WriteLine(String.Join(", ", c.ToArray()));
+        PrintTensors(A, B, C);
+        Console.WriteLine();
+        Console.WriteLine($"A[1, 0] = {A[1, 0]}");
+        Console.WriteLine($"B[0, 3] = {B[0, 3]}");
+        Console.WriteLine($"C[4, 5] = {C[4, 5]}");
     }
 
     static void Add()
@@ -136,6 +159,97 @@ internal class Program
         Span<double> dest = stackalloc double[2 * 2];
         impl1.Tensor<double> C = impl1.Tensor<double>.Add(A, 1.0, B, 1.5, dest);
 
-        Console.WriteLine(String.Join(", ", dest.ToArray()));
+        PrintTensors(A, B, C);
+    }
+
+    static void Symmetrize()
+    {
+        // 111 112 121 122  211 212 221 222
+        Span<double> a = [7, -1, 3, 2, 4, 1, 6, 5];
+        impl1.Tensor<double> A = new impl1.Tensor<double>(a, 2, 2, 2);
+
+        // 7 2 2 3   2 3 3 5
+        Span<double> sym = stackalloc double[8];
+        impl1.Tensor<double> B = impl1.Tensor<double>.Symmetrize(A, sym);
+
+        // 0 0 0 0   0 0 0 0
+        Span<double> antisym = stackalloc double[8];
+        impl1.Tensor<double> C = impl1.Tensor<double>.Antisymmetrize(A, antisym);
+
+        PrintTensors(A, B, C);
+    }
+
+    static void Transpositions()
+    {
+        // 111 112 121 122  211 212 221 222
+        Span<double> a = [7, -1, 3, 2, 4, 1, 6, 5];
+        impl1.Tensor<double> A = new impl1.Tensor<double>(a, 2, 2, 2);
+        impl1.Tensor<double>.PrintTranspositions(A);
+    }
+
+    static void Contract()
+    {
+        // 111 112 121 122  211 212 221 222
+        Span<double> a = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+        impl1.Tensor<double> A = new impl1.Tensor<double>(a, 3, 3);
+
+        Span<double> dest = stackalloc double[1];
+        impl1.Tensor<double> B = impl1.Tensor<double>.Contract(A, 0, 1, dest);
+
+        PrintTensor(A, 'A');
+        Console.WriteLine();
+        PrintTensor(B, 'B');
+    }
+
+    static void Contract2()
+    {
+        // 111 112 121 122  211 212 221 222
+        Span<double> a = [7, -1, 3, 2, 4, 1, 6, 5];
+        impl1.Tensor<double> A = new impl1.Tensor<double>(a, 2, 2, 2);
+
+        Span<double> dest = stackalloc double[2];
+        impl1.Tensor<double> B = impl1.Tensor<double>.Contract(A, 1, 2, dest);
+
+        PrintTensor(A, 'A');
+        Console.WriteLine();
+        PrintTensor(B, 'B');
+    }
+
+    static void Contract3()
+    {
+        Span<double> a = 
+            [1, 2, 3,
+            4, 5, 6];
+        impl1.Tensor<double> A = new impl1.Tensor<double>(a, 2, 3);
+
+        Span<double> b = 
+            [7,  8,
+            9,  10,
+            11, 12];
+        impl1.Tensor<double> B = new impl1.Tensor<double>(b, 3, 2);
+
+        Span<double> dest = stackalloc double[4];
+        impl1.Tensor<double> C = impl1.Tensor<double>.Contract(A, B, 1, 0, dest);
+
+        PrintTensor(A, 'A');
+        Console.WriteLine();
+        PrintTensor(B, 'B');
+    }
+
+    static void PrintTensors<T>(impl1.Tensor<T> A, impl1.Tensor<T> B, impl1.Tensor<T> C)
+         where T : unmanaged, System.Numerics.ISignedNumber<T>
+    {
+        PrintTensor(A, 'A');
+        PrintTensor(B, 'B');
+        Console.WriteLine();
+        PrintTensor(C, 'C');
+    }
+
+    static void PrintTensor<T>(impl1.Tensor<T> t, char s)
+         where T : unmanaged, System.Numerics.ISignedNumber<T>
+    {
+        Console.WriteLine($"{s} [{String.Join(",", t.Shape)}; " +
+            $"{String.Join(",", t.Strides)}]: " +
+            $"({String.Join(", ", t.Data.ToArray())})");
     }
 }
